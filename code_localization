@@ -1,0 +1,147 @@
+clc;                 
+% clear command window
+clear all;                  % clear workspace
+close all;                  % close figure window
+X_source = input('Enter the x-location of source'); % x-axis of source location, I took '8'
+Y_source = input('Enter the y-location of source'); % y-axis of source location, I took '7'
+r = input('Enter number of mics');     % Number of total microphones, I took '6'
+d = input('Enter distance between mics');   % seperation between any two microphones, I took '1'
+%Consider the microphone array co-ordinates%
+x_1 = input('Enter the co-ordinate of microphone array 1');
+y_1 = input('Enter the co-ordinate of microphone array 2');
+x_2 = x_1 + d;
+y_2 = y_1;
+x_3 = x_1;
+y_3 = y_2 + d;
+x_4 = x_2;
+y_4 = y_3;
+soundsiga = randn(1,20);
+%Now, consider the transit time calculation for each micro-phone in the
+%array
+c = 343;                    % speed of sound in air m/s
+sam_freq =  input(['Enter the sampling frequency']);  % sampling frequency, I took '20khz'
+
+mic1 = sqrt((X_source-x_1)^2+(Y_source-y_1)^2)/c;  % time from source to microphone 1
+mic2 = sqrt((X_source-x_2)^2+(Y_source-y_2)^2)/c;  % time from source to microphone 2
+mic3 = sqrt((X_source-x_3)^2+(Y_source-y_3)^2)/c;  % time from source to microphone 3
+mic4 = sqrt((X_source-x_4)^2+(Y_source-y_4)^2)/c;  % time from source to microphone 4
+
+time_interval = 1/sam_freq; %basically this is called delat T
+
+% Number of points needs to shifted for each microphone array
+N_shift_1 = floor(mic1/time_interval);
+N_shift_2 = floor(mic2/time_interval);
+N_shift_3 = floor(mic3/time_interval);
+N_shift_4 = floor(mic4/time_interval);
+
+%Add these shift points to the generated sound wave 
+soundsiga_1 = circshift(soundsiga,N_shift_1);
+soundsiga_2 = circshift(soundsiga,N_shift_2);
+soundsiga_3 = circshift(soundsiga,N_shift_3);
+soundsiga_4 = circshift(soundsiga,N_shift_4);
+
+%Now calculate cross corelation for the waveforms to get delay values
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+[xc_1,lags_1] = xcorr(soundsiga_1,soundsiga_2);
+[~,I_1] = max(abs(xc_1));
+
+figure
+stem(lags_1,xc_1,'filled')
+hold on
+stem(lags_1(I_1),xc_1(I_1),'filled')
+hold off
+legend(["Cross-correlation",sprintf('Maximum at lag %d',lags_1(I_1))])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+[xc_2,lags_2] = xcorr(soundsiga_1,soundsiga_3);
+[~,I_2] = max(abs(xc_2));
+
+figure
+stem(lags_2,xc_2,'filled')
+hold on
+stem(lags_2(I_2),xc_2(I_2),'filled')
+hold off
+legend(["Cross-correlation",sprintf('Maximum at lag %d',lags_2(I_2))])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+[xc_3,lags_3] = xcorr(soundsiga_1,soundsiga_4);
+[~,I_3] = max(abs(xc_3));
+
+figure
+stem(lags_3,xc_3,'filled')
+hold on
+stem(lags_3(I_3),xc_3(I_3),'filled')
+hold off
+legend(["Cross-correlation",sprintf('Maximum at lag %d',lags_3(I_3))])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+[xc_4,lags_4] = xcorr(soundsiga_2,soundsiga_3);
+[~,I_4] = max(abs(xc_4));
+
+figure
+stem(lags_4,xc_4,'filled')
+hold on
+stem(lags_4(I_4),xc_4(I_4),'filled')
+hold off
+legend(["Cross-correlation",sprintf('Maximum at lag %d',lags_4(I_4))])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+[xc_5,lags_5] = xcorr(soundsiga_2,soundsiga_4);
+[~,I_5] = max(abs(xc_5));
+
+figure
+stem(lags_5,xc_5,'filled')
+hold on
+stem(lags_5(I_5),xc_5(I_5),'filled')
+hold off
+legend(["Cross-correlation",sprintf('Maximum at lag %d',lags_5(I_5))])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+[xc_6,lags_6] = xcorr(soundsiga_3,soundsiga_4);
+[~,I_6] = max(abs(xc_6));
+figure
+stem(lags_6,xc_6,'filled')
+hold on
+stem(lags_6(I_6),xc_6(I_6),'filled')
+hold off
+legend(["Cross-correlation",sprintf('Maximum at lag %d',lags_6(I_6))])
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%So the shift values using xcorrr function to calculate delay%
+td_1 = abs(lags_1(I_1)) * time_interval;
+td_2 = abs(lags_2(I_2)) * time_interval;
+td_3 = abs(lags_3(I_3)) * time_interval;
+td_4 = abs(lags_4(I_4)) * time_interval;
+td_5 = abs(lags_5(I_5)) * time_interval;
+td_6 = abs(lags_6(I_6)) * time_interval;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%5
+%Now triagulteration using the delay values %
+%Since, we know difference in arrival, it will be a hyberbola trajectory%
+delta_d1 = td_1 * c;
+delta_d2 = td_2 * c;
+delta_d3 = td_3 * c; 
+delat_d4 = td_4 * c;
+delta_d5 = td_5 * c;
+delta_d6 = td_6 * c;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55
+%Now localization conidering hyberbola trajector%
+syms X_unknown Y_unknown
+eq1 = sqrt((X_unknown-x_1)^2+(Y_unknown-y_1)^2) - sqrt((X_unknown-x_2)^2+(Y_unknown-y_2)^2);
+eq2 = sqrt((X_unknown-x_1)^2+(Y_unknown-y_1)^2) - sqrt((X_unknown-x_3)^2+(Y_unknown-y_3)^2);
+eq3 = sqrt((X_unknown-x_1)^2+(Y_unknown-y_1)^2) - sqrt((X_unknown-x_4)^2+(Y_unknown-y_4)^2);
+eq4 = sqrt((X_unknown-x_2)^2+(Y_unknown-y_2)^2) - sqrt((X_unknown-x_3)^2+(Y_unknown-y_3)^2);
+eq5 = sqrt((X_unknown-x_2)^2+(Y_unknown-y_2)^2) - sqrt((X_unknown-x_4)^2+(Y_unknown-y_4)^2);
+eq6 = sqrt((X_unknown-x_3)^2+(Y_unknown-y_3)^2) - sqrt((X_unknown-x_4)^2+(Y_unknown-y_4)^2);
+sol = solve(eq1,eq2,eq3,eq4,eq5,eq6,X_unknown,Y_unknown);
+
+error = sqrt((double(sol.X_unknown)-X_source)^2+(double(sol.Y_unknown)-Y_source)^2);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%55
+figure
+rectangle('Position',[x_1,y_1,1,1],'Curvature',1,'FaceColor','r')
+rectangle('Position',[x_2,y_2,1,1],'Curvature',1,'FaceColor','r')
+rectangle('Position',[x_3,y_3,1,1],'Curvature',1,'FaceColor','r')
+rectangle('Position',[x_4,y_4,1,1],'Curvature',1,'FaceColor','r')
+rectangle('Position',[X_source,Y_source,1,1],'Curvature',1,'FaceColor','b')
+rectangle('Position',[double(sol.X_unknown),double(sol.Y_unknown),1,1],'Curvature',1,'FaceColor','g')
+axis([0,10,0,10])
+daspect([1,1,1])
+text(x_1,y_1,'Mic1')
+text(x_2,y_2,'Mic2')
+text(x_3,y_3,'Mic3')
+text(x_4,y_4,'Mic4')
+text(X_source,Y_source,'Ground-truth')
+text(double(sol.X_unknown),double(sol.Y_unknown),'Estimated-source')
